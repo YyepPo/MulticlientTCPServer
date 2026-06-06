@@ -6,7 +6,8 @@ public:
 
     void PrintInfo() const{
         const std::string banString = (bIsBanned) ? "banned" : "not banned";
-        printf("Name: %s , FD: %d , Ban Status: %s\n",name.c_str(),fd,banString.c_str());
+        const std::string adminString = (bIsAdmin) ? "is admin" : "is not admin";
+        printf("Name: %s , FD: %d , Ban Status: %s , Admin Status: %s \n",name.c_str(),fd,banString.c_str(),adminString.c_str());
     };
 
     // Getters
@@ -16,6 +17,8 @@ public:
     std::string get_name() const { return name; }
 
     bool GetIsBanned() const {return bIsBanned;}
+
+    bool GetIsAdmin() const {return bIsAdmin;}
 
     // Setters
 
@@ -34,4 +37,5 @@ private:
     int fd;
     std::string name;
     bool bIsBanned{false};
+    bool bIsAdmin{false};
 };
