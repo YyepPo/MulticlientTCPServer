@@ -296,6 +296,7 @@ void HandleGetAll(int sender_id)
 // ─────────────────────────────────────────────────────────────────────────────
 void HandleBan(int sender_id,const std::string& command)
 {
+    // Whether the server used this command, or a client that is an admin
     if(HasAuthority(sender_id) == false){
         return;
     }   
@@ -358,6 +359,56 @@ void HandlePrivateMessage(int sender_fd,const std::string& command){
     SendToClient(target_fd,message,"MSG");
 }
 
+void MuteClient(int sender_fd,const std::string& message){
+    // /mute is 5 char
+    std::istringstream iss(message.substr(5));
+    int target_id;
+    if(iss >> target_id){
+        if(clients_map.count(target_id) == false){
+            printf("Mute failed, Client with id: %d does not exist\n",target_id);
+            return;
+        }
+
+        // Get the target client data
+        ClientData* target_client = GetClient(target_id);
+
+        // Get the sender client and add the target client to its muted client list
+        ClientData* senderClient = GetClient(sender_fd);
+        if(senderClient && target_client){
+            senderClient->MuteClient(target_id);
+            printf("Client: %s successfully muted client %d\n",senderClient->get_name().c_str(),target_id);
+        }
+        else{
+            printf("Mute failed: Sender client or target client is not valid\n");
+        }
+    }
+}
+
+void UnmuteClient(int sender_fd,const std::string& message){
+    // /unmute is 7 char
+    std::istringstream iss(message.substr(5));
+    int target_id;
+    if(iss >> target_id){
+        if(clients_map.count(target_id) == false){
+            printf("Unmute failed, Client with id: %d does not exist\n",target_id);
+            return;
+        }
+
+        // Get the target client data
+        ClientData* target_client = GetClient(target_id);
+
+        // Get the sender client and remove the target client to its muted client list
+        ClientData* senderClient = GetClient(sender_fd);
+        if(senderClient && target_client){
+            senderClient->UnmuteClient(target_id);
+            printf("Client: %s successfully unmuted client %d\n",senderClient->get_name().c_str(),target_id);
+        }
+        else{
+            printf("Unmute failed: Sender client or target client is not valid\n");
+        }
+    }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // HandleCommand  –  Dispatches server/client commands parsed from raw input.
 //
@@ -375,7 +426,41 @@ void HandleCommand(int sender_fd, const std::string& command)
     else if (command.rfind("/getall",  0) == 0) HandleGetAll(sender_fd);
     else if (command.rfind("/ban",     0) == 0) HandleBan(sender_fd,command);
     else if (command.rfind("/msg",     0) == 0) HandlePrivateMessage(sender_fd,command);
+    else if (command.rfind("/mute",    0) == 0) MuteClient(sender_fd,command);
+    else if (command.rfind("/unmute",  0) == 0) UnmuteClient(sender_fd,command);
     else    printf("[Server] Unknown command: '%s'\n", command.c_str());
+}
+
+void BroadcastToEveryClient(int sender_id,const std::string& message){
+
+    // Get the sender client data
+    ClientData* sender_client = GetClient(sender_id);
+    if(sender_client == nullptr){
+        printf("Error: BroadcastToEveryClient: Clientdata is invalid for client with fd: %d",sender_id);
+        return;
+    }
+
+    // Send message to every single client
+    for(const auto& [fd, client] : clients_map){
+        // Prevent sending the message to the client that sent the message
+        if(fd == sender_id){
+            continue;
+        }
+
+        // Check if the RECIPIENT (client) has muted the SENDER (sender_id)
+        if (client.muted_clients.count(sender_id)) { 
+            printf("Log: Skipping: Recipient %s has muted Sender %d\n", 
+                    client.get_name().c_str(), sender_id);
+            continue;
+        }
+        // Dont send message to muted clients
+        // if(sender_client->muted_clients.count(fd)){
+        //     printf("Log: BroadcastToEveryClient: Client with id %d is muted for client %s\n", fd, client.get_name().c_str());
+        //     continue;
+        // }
+
+        SendToClient(fd,message,"");
+    }
 }
 
 // Message that the server receives, server should receive commands through other clients, like a client sending a private message to another client
@@ -391,11 +476,12 @@ void ReceiveMessages(int client_fd)
         {
             buffer[bytes] = '\0';
             printf("Received message from Client: %d saying: %s\n", client_fd, buffer);
-            
+            const std::string message(buffer);
             // Check if the received message is a command, the command starts with "/" for example /whisper <client_fd>
             if(buffer[0] == '/'){
-                const std::string command(buffer);
-                HandleCommand(client_fd,command);
+                HandleCommand(client_fd,message);
+            }else{
+                BroadcastToEveryClient(client_fd,message);
             }
         }
         else if (bytes == 0)
@@ -476,7 +562,7 @@ int main()
         send(client_fd, welcome_message.c_str(), welcome_message.length(), 0);
 
         // Receive clients name
-        char buffer[64] = {0};
+        char buffer[1024] = {0};
         ssize_t bytes = recv(client_fd, buffer, sizeof(buffer)-1, 0);
         
         std::string client_name = (bytes > 0) ? buffer : "Anonimus";

@@ -1,4 +1,5 @@
 #include <string>
+#include <unordered_set>
 
 class ClientData{
 public:
@@ -32,6 +33,27 @@ public:
         bIsBanned = bBanned;
         return bIsBanned;
     }
+
+    void MuteClient(int target_id){
+        if(muted_clients.count(target_id)){
+            // target id is allready muted
+            return;
+        }
+
+        muted_clients.emplace(target_id);
+    }
+
+    void UnmuteClient(int target_id){
+        // Check if target is allready muted
+        if(muted_clients.count(target_id) == false){
+            return;
+        }
+
+        muted_clients.erase(target_id);
+    }
+
+
+    std::unordered_set<int> muted_clients;
 
 private:
     int fd;

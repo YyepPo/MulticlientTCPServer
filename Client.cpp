@@ -28,7 +28,7 @@ std::string message;
         {
             std::cout << "Failed to send message to server\n";
         }
-        else\
+        else
         {
             std::cout << "Sent: " << message << std::endl;
         }
@@ -55,7 +55,7 @@ void ReceiveMessages(int client_fd)
         else
         {
             buffer[bytes_received] = '\0';
-            std::cout << "Server says: " << buffer << "\n" << std::endl;
+            std::cout << "Message: " << buffer << "\n" << std::endl;
         }
     }
 }
@@ -92,8 +92,8 @@ int main()
     std::thread send_thread(SendMessage, client_fd);
     std::thread receive_thread(ReceiveMessages, client_fd);
 
-    send_thread.detach();
-    receive_thread.detach();
+    send_thread.join();
+    receive_thread.join();
 
     
     return 0;
