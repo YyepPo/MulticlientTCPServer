@@ -1,0 +1,32 @@
+# Compiled binaries produced by the build commands in the README
+server
+client
+
+# Object files / libraries / executables
+*.o
+*.obj
+*.a
+*.so
+*.out
+*.exe
+
+# Build output
+build/
+Debug/
+Release/
+x64/
+bin/
+obj/
+
+# Visual Studio / VS Code
+.vs/
+.vscode/
+*.user
+*.vcxproj.user
+*.sln.docstates
+
+# Editor / OS junk
+*.swp
+*~
+.DS_Store
+Thumbs.db
