@@ -1,6 +1,7 @@
-# Compiled binaries produced by the build commands in the README
-server
-client
+# CMake build trees
+build/
+build-*/
+cmake-build-*/
 
 # Object files / libraries / executables
 *.o
@@ -10,17 +11,10 @@ client
 *.out
 *.exe
 
-# Build output
-build/
-Debug/
-Release/
-x64/
-bin/
-obj/
-
-# Visual Studio / VS Code
+# Visual Studio / VS Code / CLion
 .vs/
 .vscode/
+.idea/
 *.user
 *.vcxproj.user
 *.sln.docstates

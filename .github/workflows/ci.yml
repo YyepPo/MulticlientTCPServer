@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # -O2 rather than Release's -O3, whose GCC false-positive warnings would fail a -Werror build.
+          - name: optimized
+            flags: -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          - name: address-sanitizer
+            flags: -DCMAKE_BUILD_TYPE=Debug -DCHAT_SANITIZE_ADDRESS=ON
+          - name: thread-sanitizer
+            flags: -DCMAKE_BUILD_TYPE=Debug -DCHAT_SANITIZE_THREAD=ON
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Recent Ubuntu kernels use more address-space randomization than the sanitizers' shadow memory allows.
+      - name: Reduce ASLR entropy for the sanitizers
+        run: sudo sysctl vm.mmap_rnd_bits=28
+
+      - name: Configure
+        run: cmake -S . -B build -DCHAT_WARNINGS_AS_ERRORS=ON ${{ matrix.flags }}
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
